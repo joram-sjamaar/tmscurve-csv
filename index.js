@@ -4,7 +4,11 @@ let results = [];
 
 const SAMPLE_FREQ = 1800
 const FREQ_CHANNEL = 75
+const STEP_INCREMENT = 1
+const SHIFT_STEP = 6
+
 const SAMPLES_PER_PERIOD = SAMPLE_FREQ / FREQ_CHANNEL
+
 
 let file = 'Dronten_2632CT_20220316_105957_1800Hz.csv'
 readCSVAndWriteOutput(file)
@@ -33,10 +37,13 @@ function readCSVAndWriteOutput(file) {
 function calculateTorque(rawDataArray) {
     let torqueValues = []
 
-    for (let index = 0; index < rawDataArray.length; index++) {
-        if (index + 6 < rawDataArray.length) // Shift by 7 samples = sin(90)
-            torqueValues.push(rawDataArray[index + 6].Spoorfase_1800Hz * rawDataArray[index].Localefase_1800Hz);
+    for (let index = 0; index < rawDataArray.length; index = index + STEP_INCREMENT) {
+        if (index + SHIFT_STEP < rawDataArray.length) // Shift by 7 samples = sin(90)
+            torqueValues.push(rawDataArray[index + SHIFT_STEP].Spoorfase_1800Hz * rawDataArray[index].Localefase_1800Hz);
     }
+
+    console.log("Samples per second: ", SAMPLES_PER_PERIOD)
+    console.log("Amount of torque values: ", torqueValues.length)
 
     return torqueValues;
 }
@@ -45,12 +52,12 @@ function calculateAverages(torqueValues) {
     let averageValues = [];
 
     for (let j = 0; j < torqueValues.length; j = j + SAMPLES_PER_PERIOD) {
-        let totalOf24TorqueValues = 0;
+        let totalOfTorqueValues = 0;
         for (let x = 0; x < SAMPLES_PER_PERIOD; x++) {
             if (torqueValues[j + x] == undefined) break;
-            totalOf24TorqueValues += torqueValues[j + x];
+            totalOfTorqueValues += torqueValues[j + x];
         }
-        averageValues.push(totalOf24TorqueValues / SAMPLES_PER_PERIOD);
+        averageValues.push(totalOfTorqueValues / SAMPLES_PER_PERIOD);
     }
 
     return averageValues;
