@@ -38,8 +38,14 @@ function calculateTorque(rawDataArray) {
     let torqueValues = []
 
     for (let index = 0; index < rawDataArray.length; index = index + STEP_INCREMENT) {
-        if (index + SHIFT_STEP < rawDataArray.length) // Shift by 7 samples = sin(90)
-            torqueValues.push(rawDataArray[index + SHIFT_STEP].Spoorfase_1800Hz * rawDataArray[index].Localefase_1800Hz);
+
+        /**
+         * This would be the part where we phase shift the data. But data from the TMS is already phase shifted, we won't do it twice.
+         */
+        // if (index + SHIFT_STEP < rawDataArray.length) // Shift by 7 samples = sin(90)
+        //     torqueValues.push(rawDataArray[index + SHIFT_STEP].Spoorfase_1800Hz * rawDataArray[index].Localefase_1800Hz);
+        
+        torqueValues.push(rawDataArray[index].Spoorfase_1800Hz * rawDataArray[index].Localefase_1800Hz);
     }
 
     console.log("Samples per second: ", SAMPLES_PER_PERIOD)
