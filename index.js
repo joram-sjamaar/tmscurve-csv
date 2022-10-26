@@ -1,6 +1,9 @@
 const csv = require('csv-parser')
+const humanizeDuration = require("humanize-duration");
 const fs = require('fs')
 let results = [];
+let startOfMidSection = 0;
+let endOfMidSection = 0;
 
 const SAMPLE_FREQ = 1800
 const FREQ_CHANNEL = 75
@@ -18,8 +21,17 @@ function readCSVAndWriteOutput(file) {
         .pipe(csv())
         .on('data', (data) => results.push(data))
         .on('end', () => {
+            console.time("TimeSpentCalculatingParameters");
+
             let torqueValues = calculateTorque(results);
             let averageValues = calculateAverages(torqueValues);
+            let midSection = findMidSection(averageValues);
+
+            calculateParameters(midSection);
+
+
+            console.timeEnd("TimeSpentCalculatingParameters");
+
             let csvContent = generateCsvContent(averageValues);
 
             fs.writeFile(`out/${file}_output.csv`, csvContent, err => {
@@ -32,6 +44,125 @@ function readCSVAndWriteOutput(file) {
         });
 
     results = []; // reset results
+}
+
+function movingAverage(midSection) {
+    let min = midSection[0];
+    let max = midSection[0];
+
+    for (let i = 0; i < midSection.length; i+=15) {
+        periodAverage = 0;
+        for (let j = 0; j < 15; j++) {
+            periodAverage += midSection[i+j];
+        }
+        periodAverage = periodAverage / 15;
+        
+        if (periodAverage < min) min = periodAverage;
+        if (periodAverage > max) max = periodAverage;
+    }
+
+    console.log("MaxTorqueMid: ", max);
+    console.log("MinTorqueMid: ", min);
+}
+
+function surfaceArea(midSection)
+{
+    let middleSectionCopy = [...midSection];
+
+    let totalSurface = 0;
+    for (let i = 0; i < middleSectionCopy.length; i++) {
+        // negative koppelwaardes op 0
+        if (middleSectionCopy[i] < 0) 
+            middleSectionCopy[i] = 0;
+
+        // vermingvuldigen met 1/75
+        totalSurface += middleSectionCopy[i];
+    }
+
+    let avgSurface = totalSurface / middleSectionCopy.length;
+
+    return avgSurface.toFixed(10);
+}
+
+
+function findMidSection(averageValues) {
+    let startFound = false;
+    let endFound = false;
+
+    // Look at 5 samples and average that
+    for (let index = 0; index < averageValues.length; index++) {
+
+        if (!startFound) {
+            let avg = 0;
+            for (let avgIndex = 0; avgIndex < 5; avgIndex++) {
+                avg += averageValues[index + avgIndex];
+            }
+            avg = avg / 5;
+            
+            let currentMid = averageValues[startOfMidSection];
+
+            if (avg.toFixed(3) < currentMid.toFixed(3)) {
+                startOfMidSection = index;
+                startFound = true;
+                // console.log(`${avg.toFixed(3)} < ${currentMid.toFixed(3)} = ${startOfMidSection}`);
+                // console.log(`Start of mid section = Index ${startOfMidSection}: `, averageValues[startOfMidSection]);
+                endOfMidSection = index + 10;
+                index+=10;
+            }
+        }
+
+        if (!endFound) {
+            let avg = 0;
+            for (let avgIndex = 0; avgIndex < 5; avgIndex++) {
+                avg += averageValues[index + avgIndex];
+            }
+            avg = avg / 5;
+            
+            let currentMid = averageValues[endOfMidSection];
+
+            if ((avg - currentMid) > 0.001) {
+                endOfMidSection = index;
+                endFound = true;
+                // console.log(`${avg} - ${currentMid} = ${avg - currentMid} = ${endOfMidSection}`);
+                // console.log(`End of mid section = Index ${endOfMidSection}: `, averageValues[endOfMidSection]);
+            }
+        }
+        
+    }
+
+    let middleSection = averageValues.slice(startOfMidSection, endOfMidSection);
+
+    console.log("TimeMeasured: ", humanizeDuration(Math.round((middleSection.length * (SAMPLES_PER_PERIOD / SAMPLE_FREQ)) * 1000)))
+    
+    // midden van het midden
+    let length = middleSection.length;
+    let slice = length / 3;
+    let start = Math.round(slice);
+    let end = slice * 2;
+
+    let middleOfMiddleSection = middleSection.slice(start, end);
+
+    return middleOfMiddleSection;
+}
+
+function calculateParameters(midSection) {
+    calculateAverageSections(midSection);
+    movingAverage(midSection)
+    
+    console.log("AvgSurfaceArea: ", surfaceArea(midSection));
+}
+
+function calculateAverageSections(midSection) {
+
+    let sortedValues = midSection.sort();
+
+    let q1 = Math.round(sortedValues.length * 0.25);
+    let q2 = Math.round(sortedValues.length * 0.50);
+    let q3 = Math.round(sortedValues.length * 0.75);
+    
+    console.log("AvgFirstQuartileMidSection: ", sortedValues[q1]);
+    console.log("AvgSecondQuartileMidSection: ", sortedValues[q2]);
+    console.log("AvgThirdQuartileMidSection: ", sortedValues[q3]);
 }
 
 function calculateTorque(rawDataArray) {
