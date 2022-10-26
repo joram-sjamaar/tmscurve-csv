@@ -1,14 +1,14 @@
 {
   "name": "demo-converter",
   "version": "1.0.0",
-  "description": "",
+  "description": "Converts raw TMS data into a CSV file. Also outputs parameters to the console.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Joram Sjamaar",
+  "license": "Proprietary",
   "dependencies": {
     "csv-parser": "^3.0.0",
     "humanize-duration": "^3.27.3"
