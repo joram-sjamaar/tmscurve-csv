@@ -1,5 +1,4 @@
 const csv = require('csv-parser')
-const humanizeDuration = require("humanize-duration");
 const fs = require('fs')
 let results = [];
 let parameterResults = {};

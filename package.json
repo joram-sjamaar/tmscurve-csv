@@ -10,7 +10,6 @@
   "author": "Joram Sjamaar",
   "license": "Proprietary",
   "dependencies": {
-    "csv-parser": "^3.0.0",
-    "humanize-duration": "^3.27.3"
+    "csv-parser": "^3.0.0"
   }
 }
